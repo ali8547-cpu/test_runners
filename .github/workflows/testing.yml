@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-proxy:
+  run-test:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
@@ -66,9 +66,10 @@ jobs:
       - name: Start frpc
         run: |
           cd ${{ env.FRP_DIR }}
-          ./frpc -c frpc.toml > frpc.log 2>&1 &
+          ./frpc -c frpc.toml > frpc.log &
           sleep 3
-          grep "start proxy success" frpc.log || echo "Warning: frpc might have failed, check logs"
+          grep "start success" frpc.log || echo "Warning: frpc might have failed, check logs"
+          cat frpc.log
 
       - name: Create V2Ray client config link
         run: |
@@ -98,5 +99,5 @@ jobs:
 
       - name: Keep alive
         run: |
-          echo "Proxy is running. Cancel workflow to stop."
+          echo "test is running. Cancel workflow to stop."
           while true; do sleep 60; done
