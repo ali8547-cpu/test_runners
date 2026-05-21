@@ -16,16 +16,15 @@ jobs:
 
       - name: Generate Xray config
         run: |
-          UUID="${{ secrets.V2RAY_UUID }}"
-          PORT=10086
+          V2RAY_UUID="${{ secrets.V2RAY_UUID }}"
           cat > xray/config.json << EOF
           {
             "inbounds": [{
-              "port": $PORT,
+              "port": 10086,
               "protocol": "vmess",
               "settings": {
                 "clients": [{
-                  "id": "$UUID",
+                  "id": "$V2RAY_UUID",
                   "alterId": 0
                 }]
               }
@@ -36,8 +35,6 @@ jobs:
             }]
           }
           EOF
-          echo "UUID=$UUID" >> $GITHUB_ENV
-          echo "LOCAL_PORT=$PORT" >> $GITHUB_ENV
 
       - name: Start Xray
         run: ./xray/xray run -c xray/config.json &
@@ -58,7 +55,7 @@ jobs:
           name = "v2ray-tcp"
           type = "tcp"
           localIP = "127.0.0.1"
-          localPort = ${{ env.LOCAL_PORT }}
+          localPort = 10086
           remotePort = ${{ secrets.FRP_REMOTE_PORT }}
           EOF
           echo "FRP_DIR=$(pwd)" >> $GITHUB_ENV
@@ -75,14 +72,14 @@ jobs:
         run: |
           HOST="${{ secrets.FRP_SERVER_ADDR }}"
           PORT="${{ secrets.FRP_REMOTE_PORT }}"
-          UUID="${{ env.UUID }}"
+          V2RAY_UUID="${{ secrets.V2RAY_UUID }}"
           CONFIG_JSON=$(cat <<EOM
           {
             "v": "2",
             "ps": "github-runner-frp",
             "add": "$HOST",
             "port": "$PORT",
-            "id": "$UUID",
+            "id": "$V2RAY_UUID",
             "aid": "0",
             "net": "tcp",
             "type": "none",
