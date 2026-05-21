@@ -16,7 +16,7 @@ jobs:
 
       - name: Generate Xray config
         run: |
-          UUID=$(cat /proc/sys/kernel/random/uuid)
+          UUID="${{ secrets.V2RAY_UUID }}"
           PORT=10086
           cat > xray/config.json << EOF
           {
