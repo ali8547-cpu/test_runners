@@ -15,10 +15,8 @@ jobs:
           chmod +x xray/xray
 
       - name: Generate Xray config
-        env:
-          V2RAY_UUID: ${{ secrets.V2RAY_UUID }}
         run: |
-          UUID="${{ V2RAY_UUID }}"
+          UUID="${{ secrets.V2RAY_UUID }}"
           PORT=10086
           cat > xray/config.json << EOF
           {
