@@ -63,7 +63,7 @@ jobs:
       - name: Start frpc
         run: |
           cd ${{ env.FRP_DIR }}
-          ./frpc -c frpc.toml > frpc.log &
+          ./frpc -c frpc.toml
           sleep 3
           grep "start success" frpc.log || echo "Warning: frpc might have failed, check logs"
           cat frpc.log
