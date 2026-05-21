@@ -1,0 +1,101 @@
+name: Temporary Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Install Xray-core
+        run: |
+          curl -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
+          unzip xray.zip -d xray
+          chmod +x xray/xray
+
+      - name: Generate Xray config
+        run: |
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          PORT=10086
+          cat > xray/config.json << EOF
+          {
+            "inbounds": [{
+              "port": $PORT,
+              "protocol": "vmess",
+              "settings": {
+                "clients": [{
+                  "id": "$UUID",
+                  "alterId": 0
+                }]
+              }
+            }],
+            "outbounds": [{
+              "protocol": "freedom",
+              "settings": {}
+            }]
+          }
+          EOF
+          echo "UUID=$UUID" >> $GITHUB_ENV
+          echo "LOCAL_PORT=$PORT" >> $GITHUB_ENV
+
+      - name: Start Xray
+        run: ./xray/xray run -c xray/config.json &
+
+      - name: Download and configure frpc
+        run: |
+          FRP_VER=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | jq -r .tag_name)
+          curl -L https://github.com/fatedier/frp/releases/download/${FRP_VER}/frp_${FRP_VER#v}_linux_amd64.tar.gz -o frp.tar.gz
+          tar xzf frp.tar.gz
+          cd frp_${FRP_VER#v}_linux_amd64
+          cat > frpc.ini << EOF
+          [common]
+          server_addr = ${{ secrets.FRP_SERVER_ADDR }}
+          server_port = ${{ secrets.FRP_SERVER_PORT }}
+          token = ${{ secrets.FRP_TOKEN }}
+
+          [v2ray-tcp]
+          type = tcp
+          local_ip = 127.0.0.1
+          local_port = ${{ env.LOCAL_PORT }}
+          remote_port = ${{ secrets.FRP_REMOTE_PORT }}
+          EOF
+          echo "FRP_DIR=$(pwd)" >> $GITHUB_ENV
+
+      - name: Start frpc
+        run: |
+          cd ${{ env.FRP_DIR }}
+          ./frpc -c frpc.ini > frpc.log 2>&1 &
+          sleep 3
+          grep "start proxy success" frpc.log || echo "Warning: frpc might have failed, check logs"
+
+      - name: Create V2Ray client config link
+        run: |
+          HOST="${{ secrets.FRP_SERVER_ADDR }}"
+          PORT="${{ secrets.FRP_REMOTE_PORT }}"
+          UUID="${{ env.UUID }}"
+          CONFIG_JSON=$(cat <<EOM
+          {
+            "v": "2",
+            "ps": "github-runner-frp",
+            "add": "$HOST",
+            "port": "$PORT",
+            "id": "$UUID",
+            "aid": "0",
+            "net": "tcp",
+            "type": "none",
+            "host": "",
+            "path": "",
+            "tls": "none"
+          }
+          EOM
+          )
+          VMESS_LINK="vmess://$(echo -n $CONFIG_JSON | base64 -w0)"
+          echo "========== V2Ray Config =========="
+          echo "$VMESS_LINK"
+          echo "=================================="
+
+      - name: Keep alive
+        run: |
+          echo "Proxy is running. Cancel workflow to stop."
+          while true; do sleep 60; done
