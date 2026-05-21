@@ -48,24 +48,25 @@ jobs:
           curl -L https://github.com/fatedier/frp/releases/download/${FRP_VER}/frp_${FRP_VER#v}_linux_amd64.tar.gz -o frp.tar.gz
           tar xzf frp.tar.gz
           cd frp_${FRP_VER#v}_linux_amd64
-          cat > frpc.ini << EOF
-          [common]
-          server_addr = ${{ secrets.FRP_SERVER_ADDR }}
-          server_port = ${{ secrets.FRP_SERVER_PORT }}
-          token = ${{ secrets.FRP_TOKEN }}
+          cat > frpc.toml << EOF
+          serverAddr = "${{ secrets.FRP_SERVER_ADDR }}"
+          serverPort = ${{ secrets.FRP_SERVER_PORT }}
+          auth.method = "token"
+          auth.token = "${{ secrets.FRP_TOKEN }}"
 
-          [v2ray-tcp]
-          type = tcp
-          local_ip = 127.0.0.1
-          local_port = ${{ env.LOCAL_PORT }}
-          remote_port = ${{ secrets.FRP_REMOTE_PORT }}
+          [[proxies]]
+          name = "v2ray-tcp"
+          type = "tcp"
+          localIP = "127.0.0.1"
+          localPort = ${{ env.LOCAL_PORT }}
+          remotePort = ${{ secrets.FRP_REMOTE_PORT }}
           EOF
           echo "FRP_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: Start frpc
         run: |
           cd ${{ env.FRP_DIR }}
-          ./frpc -c frpc.ini > frpc.log 2>&1 &
+          ./frpc -c frpc.toml > frpc.log 2>&1 &
           sleep 3
           grep "start proxy success" frpc.log || echo "Warning: frpc might have failed, check logs"
 
