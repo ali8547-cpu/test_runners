@@ -50,6 +50,7 @@ jobs:
           serverPort = ${{ secrets.FRP_SERVER_PORT }}
           auth.method = "token"
           auth.token = "${{ secrets.FRP_TOKEN }}"
+          loginFailExit=false
 
           [[proxies]]
           name = "v2ray-tcp"
