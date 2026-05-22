@@ -7,9 +7,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: install xray
+      - name: download xray
         run: |
-          bash <(curl -Ls https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh)
+          curl -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
+          unzip xray.zip
+          chmod +x xray
 
       - name: config client
         run: |
@@ -53,7 +55,7 @@ jobs:
 
       - name: run xray
         run: |
-          xray -config config.json &
+          ./xray -config config.json &
 
       - name: setup key
         run: |
